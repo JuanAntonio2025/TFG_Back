@@ -6,6 +6,9 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\LibraryController;
+use App\Http\Controllers\Api\ReviewController;
+use App\Http\Controllers\Api\IncidenceController;
+use App\Http\Controllers\Api\MessageController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -17,6 +20,9 @@ Route::prefix('v1')->group(function () {
     Route::get('/books', [BookController::class, 'index']);
     Route::get('/books/{bookId}', [BookController::class, 'show']);
     Route::get('/categories', [CategoryController::class, 'index']);
+
+    // Reseñas públicas por libro
+    Route::get('/books/{bookId}/reviews', [ReviewController::class, 'indexByBook']);
 });
 
 Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
@@ -37,4 +43,17 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
     // Library
     Route::get('/library', [LibraryController::class, 'index']);
+
+    // Reviews (usuario autenticado)
+    Route::post('/books/{bookId}/reviews', [ReviewController::class, 'store']);
+    Route::put('/reviews/{reviewId}', [ReviewController::class, 'update']);
+    Route::delete('/reviews/{reviewId}', [ReviewController::class, 'destroy']);
+
+    // Incidences
+    Route::get('/incidences', [IncidenceController::class, 'index']);
+    Route::post('/incidences', [IncidenceController::class, 'store']);
+    Route::get('/incidences/{incidenceId}', [IncidenceController::class, 'show']);
+
+    // Messages dentro de incidencias
+    Route::post('/incidences/{incidenceId}/messages', [MessageController::class, 'store']);
 });
