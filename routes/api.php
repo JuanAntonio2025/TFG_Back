@@ -9,6 +9,11 @@ use App\Http\Controllers\Api\LibraryController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\IncidenceController;
 use App\Http\Controllers\Api\MessageController;
+use App\Http\Controllers\Api\Admin\AdminBookController;
+use App\Http\Controllers\Api\Admin\AdminCategoryController;
+use App\Http\Controllers\Api\Admin\AdminUserController;
+use App\Http\Controllers\Api\Support\SupportIncidenceController;
+use App\Http\Controllers\Api\Support\SupportMessageController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -58,31 +63,49 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::post('/incidences/{incidenceId}/messages', [MessageController::class, 'store']);
 });
 
-//Esto es nuevo
 // Admin-only routes
-Route::prefix('v1/admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
+Route::prefix('v1/admin')
+    ->middleware(['auth:sanctum', 'role:admin'])
+    ->group(function () {
         Route::get('/ping', function () {
             return response()->json([
                 'message' => 'Admin access granted',
             ]);
         });
 
-        // Aquí irán:
-        //Route::apiResource('/books', AdminBookController::class);
-        //Route::apiResource('/categories', AdminCategoryController::class);
-        //Route::get('/users', [AdminUserController::class, 'index']);
+        // Books
+        Route::get('/books', [AdminBookController::class, 'index']);
+        Route::post('/books', [AdminBookController::class, 'store']);
+        Route::get('/books/{bookId}', [AdminBookController::class, 'show']);
+        Route::put('/books/{bookId}', [AdminBookController::class, 'update']);
+        Route::delete('/books/{bookId}', [AdminBookController::class, 'destroy']);
+
+        // Categories
+        Route::get('/categories', [AdminCategoryController::class, 'index']);
+        Route::post('/categories', [AdminCategoryController::class, 'store']);
+        Route::get('/categories/{categoryId}', [AdminCategoryController::class, 'show']);
+        Route::put('/categories/{categoryId}', [AdminCategoryController::class, 'update']);
+        Route::delete('/categories/{categoryId}', [AdminCategoryController::class, 'destroy']);
+
+        // Users
+        Route::get('/users', [AdminUserController::class, 'index']);
+        Route::get('/users/{userId}', [AdminUserController::class, 'show']);
+        Route::patch('/users/{userId}/status', [AdminUserController::class, 'updateStatus']);
     });
 
 // Admin + Support routes
-Route::prefix('v1/support')->middleware(['auth:sanctum', 'role:admin,support'])->group(function () {
+Route::prefix('v1/support')
+    ->middleware(['auth:sanctum', 'role:admin,support'])
+    ->group(function () {
         Route::get('/ping', function () {
             return response()->json([
                 'message' => 'Support/Admin access granted',
             ]);
         });
 
-        // Aquí irán:
-        //Route::get('/incidences', [SupportIncidenceController::class, 'index']);
-        //Route::get('/incidences/{id}', [SupportIncidenceController::class, 'show']);
-        //Route::post('/incidences/{id}/messages', [SupportMessageController::class, 'store']);
+        Route::get('/incidences', [SupportIncidenceController::class, 'index']);
+        Route::get('/incidences/{incidenceId}', [SupportIncidenceController::class, 'show']);
+        Route::patch('/incidences/{incidenceId}/status', [SupportIncidenceController::class, 'updateStatus']);
+
+        Route::post('/incidences/{incidenceId}/messages', [SupportMessageController::class, 'store']);
     });
