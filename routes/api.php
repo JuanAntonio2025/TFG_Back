@@ -57,3 +57,32 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     // Messages dentro de incidencias
     Route::post('/incidences/{incidenceId}/messages', [MessageController::class, 'store']);
 });
+
+//Esto es nuevo
+// Admin-only routes
+Route::prefix('v1/admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
+        Route::get('/ping', function () {
+            return response()->json([
+                'message' => 'Admin access granted',
+            ]);
+        });
+
+        // Aquí irán:
+        //Route::apiResource('/books', AdminBookController::class);
+        //Route::apiResource('/categories', AdminCategoryController::class);
+        //Route::get('/users', [AdminUserController::class, 'index']);
+    });
+
+// Admin + Support routes
+Route::prefix('v1/support')->middleware(['auth:sanctum', 'role:admin,support'])->group(function () {
+        Route::get('/ping', function () {
+            return response()->json([
+                'message' => 'Support/Admin access granted',
+            ]);
+        });
+
+        // Aquí irán:
+        //Route::get('/incidences', [SupportIncidenceController::class, 'index']);
+        //Route::get('/incidences/{id}', [SupportIncidenceController::class, 'show']);
+        //Route::post('/incidences/{id}/messages', [SupportMessageController::class, 'store']);
+    });

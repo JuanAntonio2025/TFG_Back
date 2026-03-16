@@ -84,4 +84,23 @@ class User extends Authenticatable
             ->join('orders', 'orders.order_id', '=', 'book_order.order_id')
             ->whereColumn('orders.user_id', 'users.user_id');
     }
+
+    public function hasRole(string $roleName): bool
+    {
+        return $this->roles()
+            ->where('name', $roleName)
+            ->exists();
+    }
+
+    public function hasAnyRole(array $roleNames): bool
+    {
+        return $this->roles()
+            ->whereIn('name', $roleNames)
+            ->exists();
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->hasRole('admin');
+    }
 }
