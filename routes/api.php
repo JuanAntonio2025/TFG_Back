@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\Admin\AdminUserController;
 use App\Http\Controllers\Api\Support\SupportIncidenceController;
 use App\Http\Controllers\Api\Support\SupportMessageController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\ReaderController;
 
 Route::prefix('v1')->group(function () {
     // Auth pública
@@ -61,6 +62,9 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
     // Messages dentro de incidencias
     Route::post('/incidences/{incidenceId}/messages', [MessageController::class, 'store']);
+
+    //Reader
+    Route::get('/reader/{bookId}', [ReaderController::class, 'show']);
 });
 
 // Admin-only routes
