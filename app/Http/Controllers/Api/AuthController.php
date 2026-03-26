@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -85,6 +86,53 @@ class AuthController extends Controller
         return response()->json(
             $request->user()->load('roles')
         );
+    }
+
+    public function profile(Request $request): JsonResponse
+    {
+        $user = $request->user()->load('roles');
+
+        return response()->json([
+            'data' => $user,
+        ]);
+    }
+
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($user->user_id, 'user_id'),
+            ],
+            'current_password' => ['nullable', 'string'],
+            'new_password' => ['nullable', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user->name = $data['name'];
+        $user->email = $data['email'];
+
+        if (!empty($data['new_password'])) {
+            if (empty($data['current_password']) || !Hash::check($data['current_password'], $user->password)) {
+                return response()->json([
+                    'message' => 'Current password is incorrect.',
+                ], 422);
+            }
+
+            $user->password = Hash::make($data['new_password']);
+        }
+
+        $user->save();
+        $user->load('roles');
+
+        return response()->json([
+            'message' => 'Profile updated successfully.',
+            'data' => $user,
+        ]);
     }
 
     public function logout(Request $request): JsonResponse
