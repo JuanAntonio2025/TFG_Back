@@ -79,6 +79,10 @@ Route::prefix('v1/admin')
             ]);
         });
 
+        //Roles
+        Route::get('/roles', [AdminUserController::class, 'roles']);
+        Route::put('/users/{userId}/roles', [AdminUserController::class, 'updateRoles']);
+
         // Books
         Route::get('/books', [AdminBookController::class, 'index']);
         Route::post('/books', [AdminBookController::class, 'store']);
