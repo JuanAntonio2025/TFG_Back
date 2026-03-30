@@ -94,9 +94,7 @@ class OrderController extends Controller
             // Calculamos total
             $totalAmount = 0.0;
             foreach ($cart->books as $book) {
-                $qty = (int) $book->pivot->quantity;
-                $unitPrice = (float) $book->price;
-                $totalAmount += ($qty * $unitPrice);
+                $totalAmount = $cart->books->sum('price');
             }
 
             // Pedido "realista pero simulado":
@@ -110,7 +108,6 @@ class OrderController extends Controller
 
             // Copiamos líneas a book_order
             foreach ($cart->books as $book) {
-                $qty = (int) $book->pivot->quantity;
                 $unitPrice = (float) $book->price;
 
                 // Como book_order no tiene quantity en tu diseño, insertamos una línea por libro.

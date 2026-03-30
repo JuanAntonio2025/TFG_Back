@@ -52,65 +52,54 @@ class CartController extends Controller
 
         $data = $request->validate([
             'book_id' => ['required', 'integer', 'exists:books,book_id'],
-            'quantity' => ['required', 'integer', 'min:1'],
         ]);
 
-        $book = Book::where('book_id', $data['book_id'])
-            ->where('available', 'available')
-            ->first();
+        $bookId = $data['book_id'];
 
-        if (!$book) {
+        $alreadyPurchased = DB::table('orders')
+            ->join('book_order', 'orders.order_id', '=', 'book_order.order_id')
+            ->where('orders.user_id', $user->user_id)
+            ->where('orders.status', 'paid')
+            ->where('book_order.book_id', $bookId)
+            ->exists();
+
+        if ($alreadyPurchased) {
             return response()->json([
-                'message' => 'Book is not available.',
+                'message' => 'You already own this book.',
             ], 422);
         }
 
-        DB::transaction(function () use ($user, $data) {
-            $cart = Cart::where('user_id', $user->user_id)
-                ->where('active', Cart::STATUS_ACTIVE ?? 'active')
-                ->latest('cart_id')
-                ->lockForUpdate()
-                ->first();
+        $cart = Cart::firstOrCreate(
+            [
+                'user_id' => $user->user_id,
+                'active' => 'active',
+            ],
+            [
+                'creation_date' => now(),
+                'expiration_date' => null,
+            ]
+        );
 
-            if (!$cart) {
-                $cart = Cart::create([
-                    'user_id' => $user->user_id,
-                    'creation_date' => now(),
-                    'expiration_date' => null,
-                    'active' => Cart::STATUS_ACTIVE ?? 'active',
-                ]);
-            }
+        $alreadyInCart = DB::table('book_cart')
+            ->where('cart_id', $cart->cart_id)
+            ->where('book_id', $bookId)
+            ->exists();
 
-            $existing = DB::table('book_cart')
-                ->where('cart_id', $cart->cart_id)
-                ->where('book_id', $data['book_id'])
-                ->first();
+        if ($alreadyInCart) {
+            return response()->json([
+                'message' => 'This book is already in your cart.',
+            ], 422);
+        }
 
-            if ($existing) {
-                DB::table('book_cart')
-                    ->where('cart_id', $cart->cart_id)
-                    ->where('book_id', $data['book_id'])
-                    ->update([
-                        'quantity' => (int) $existing->quantity + (int) $data['quantity'],
-                    ]);
-            } else {
-                DB::table('book_cart')->insert([
-                    'cart_id' => $cart->cart_id,
-                    'book_id' => $data['book_id'],
-                    'quantity' => $data['quantity'],
-                ]);
-            }
-        });
-
-        $cart = Cart::with('books')
-            ->where('user_id', $user->user_id)
-            ->where('active', Cart::STATUS_ACTIVE ?? 'active')
-            ->latest('cart_id')
-            ->firstOrFail();
+        DB::table('book_cart')->insert([
+            'cart_id' => $cart->cart_id,
+            'book_id' => $bookId,
+            'quantity' => 1,
+        ]);
 
         return response()->json([
-            'message' => 'Book added to cart.',
-            'data' => $this->formatCartResponse($cart),
+            'message' => 'Book added to cart successfully.',
+            'data' => $this->buildCartResponse($cart->fresh()),
         ], 201);
     }
 
@@ -237,6 +226,47 @@ class CartController extends Controller
                 'items_count' => $items->count(),
                 'total_quantity' => $totalQuantity,
                 'total_amount' => round((float) $totalAmount, 2),
+            ],
+        ];
+    }
+
+    private function buildCartResponse($cart): array
+    {
+        if (!$cart) {
+            return [
+                'cart' => null,
+                'items' => [],
+                'summary' => [
+                    'items_count' => 0,
+                    'total_amount' => 0,
+                ],
+            ];
+        }
+
+        $items = $cart->books->map(function ($book) {
+            return [
+                'book_id' => $book->book_id,
+                'title' => $book->title,
+                'author' => $book->author,
+                'front_page' => $book->front_page,
+                'format' => $book->format,
+                'price' => (float) $book->price,
+                'line_total' => (float) $book->price,
+            ];
+        })->values();
+
+        return [
+            'cart' => [
+                'cart_id' => $cart->cart_id,
+                'user_id' => $cart->user_id,
+                'creation_date' => $cart->creation_date,
+                'expiration_date' => $cart->expiration_date,
+                'active' => $cart->active,
+            ],
+            'items' => $items,
+            'summary' => [
+                'items_count' => $items->count(),
+                'total_amount' => $items->sum('line_total'),
             ],
         ];
     }
