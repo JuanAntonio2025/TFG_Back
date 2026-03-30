@@ -8,6 +8,7 @@ use App\Models\Order;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class OrderController extends Controller
 {
@@ -62,98 +63,108 @@ class OrderController extends Controller
     {
         $user = $request->user();
 
-        // Para demo, permitimos elegir méthodo pero no procesamos pago real.
         $data = $request->validate([
-            'payment_method' => ['nullable', 'string', 'in:card,paypal'],
+            'payment_method' => ['required', 'in:card,paypal'],
+            'card_holder' => ['nullable', 'string', 'max:255'],
+            'card_number' => ['nullable', 'string', 'max:25'],
+            'expiry_date' => ['nullable', 'string', 'max:10'],
+            'cvv' => ['nullable', 'string', 'max:4'],
+            'paypal_email' => ['nullable', 'email', 'max:255'],
         ]);
 
-        $result = DB::transaction(function () use ($user, $data) {
-            $cart = Cart::with('books')
-                ->where('user_id', $user->user_id)
-                ->where('active', Cart::STATUS_ACTIVE ?? 'active')
-                ->latest('cart_id')
-                ->lockForUpdate()
-                ->first();
-
-            if (!$cart) {
-                return [
-                    'error' => response()->json([
-                        'message' => 'Active cart not found.',
-                    ], 404),
-                ];
+        if ($data['payment_method'] === 'card') {
+            if (
+                empty($data['card_holder']) ||
+                empty($data['card_number']) ||
+                empty($data['expiry_date']) ||
+                empty($data['cvv'])
+            ) {
+                return response()->json([
+                    'message' => 'Card payment data is incomplete.',
+                ], 422);
             }
+        }
 
-            if ($cart->books->isEmpty()) {
-                return [
-                    'error' => response()->json([
-                        'message' => 'Cart is empty.',
-                    ], 422),
-                ];
+        if ($data['payment_method'] === 'paypal') {
+            if (empty($data['paypal_email'])) {
+                return response()->json([
+                    'message' => 'PayPal email is required.',
+                ], 422);
             }
+        }
 
-            // Calculamos total
-            $totalAmount = 0.0;
-            foreach ($cart->books as $book) {
-                $totalAmount = $cart->books->sum('price');
-            }
+        $cart = Cart::with('books')
+            ->where('user_id', $user->user_id)
+            ->where('active', 'active')
+            ->first();
 
-            // Pedido "realista pero simulado":
-            // para demo lo marcamos como paid directamente.
+        if (!$cart || $cart->books->isEmpty()) {
+            return response()->json([
+                'message' => 'Your cart is empty.',
+            ], 422);
+        }
+
+        $totalAmount = $cart->books->sum(function ($book) {
+            return (float) $book->price;
+        });
+
+        DB::beginTransaction();
+
+        try {
             $order = Order::create([
                 'user_id' => $user->user_id,
                 'order_date' => now(),
-                'total_amount' => round($totalAmount, 2),
-                'status' => Order::STATUS_PAID ?? 'paid',
+                'total_amount' => $totalAmount,
+                'status' => 'paid',
             ]);
 
-            // Copiamos líneas a book_order
             foreach ($cart->books as $book) {
-                $unitPrice = (float) $book->price;
-
-                // Como book_order no tiene quantity en tu diseño, insertamos una línea por libro.
-                // El "qty" ya se ha usado para calcular el total, pero no se almacena en pedido.
-                // Si en el futuro quieres soportar cantidades en pedidos, añade quantity a book_order.
                 DB::table('book_order')->insert([
                     'order_id' => $order->order_id,
                     'book_id' => $book->book_id,
-                    'unit_price' => round($unitPrice, 2),
+                    'unit_price' => $book->price,
                 ]);
-
-                // Si quantity > 1 y tu PK es (order_id, book_id), no puedes repetir libro.
-                // Esto implica que conceptualmente en pedidos cada libro aparece una sola vez.
-                // Para ebooks tiene sentido (normalmente no compras el mismo ebook varias veces).
-                // Si quieres bloquear qty>1 en checkout, lo hacemos luego.
             }
 
-            // Cerramos carrito
-            $cart->active = Cart::STATUS_CLOSED ?? 'closed';
-            $cart->expiration_date = now();
-            $cart->save();
+            DB::table('book_cart')
+                ->where('cart_id', $cart->cart_id)
+                ->delete();
 
-            // Recargamos pedido con libros
+            $cart->update([
+                'active' => 'closed',
+            ]);
+
+            $transactionReference = 'SIM-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(6));
+
+            DB::commit();
+
             $order->load('books');
 
-            return [
-                'order' => $order,
-                'payment_method' => $data['payment_method'] ?? null,
-            ];
-        });
-
-        if (isset($result['error'])) {
-            return $result['error'];
-        }
-
-        return response()->json([
-            'message' => 'Order created successfully (simulated payment).',
-            'data' => [
-                'payment' => [
-                    'simulated' => true,
-                    'method' => $result['payment_method'],
-                    'status' => 'paid',
+            return response()->json([
+                'message' => 'Order created successfully.',
+                'data' => [
+                    'payment' => [
+                        'simulated' => true,
+                        'method' => $data['payment_method'],
+                        'status' => 'paid',
+                        'transaction_reference' => $transactionReference,
+                    ],
+                    'order' => [
+                        'order_id' => $order->order_id,
+                        'user_id' => $order->user_id,
+                        'order_date' => $order->order_date,
+                        'total_amount' => $order->total_amount,
+                        'status' => $order->status,
+                    ],
                 ],
-                'order' => $this->formatOrder($result['order']),
-            ],
-        ], 201);
+            ], 201);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'message' => 'The order could not be processed.',
+            ], 500);
+        }
     }
 
     /**
