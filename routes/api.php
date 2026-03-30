@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AdminReviewController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BookController;
 use App\Http\Controllers\Api\CategoryController;
@@ -78,6 +79,10 @@ Route::prefix('v1/admin')
                 'message' => 'Admin access granted',
             ]);
         });
+
+        //Moderate Reviews
+        Route::get('/reviews', [AdminReviewController::class, 'index']);
+        Route::delete('/reviews/{reviewId}', [AdminReviewController::class, 'destroy']);
 
         //Roles
         Route::get('/roles', [AdminUserController::class, 'roles']);
