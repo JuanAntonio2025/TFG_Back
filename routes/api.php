@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\LibraryController;
+use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\IncidenceController;
 use App\Http\Controllers\Api\MessageController;
@@ -22,6 +23,10 @@ Route::prefix('v1')->group(function () {
     // Auth pública
     Route::post('/auth/register', [AuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']);
+
+    // Recuperar Contraseña
+    Route::post('/auth/forgot-password', [PasswordResetController::class, 'forgotPassword']);
+    Route::post('/auth/reset-password', [PasswordResetController::class, 'resetPassword']);
 
     // Catálogo público
     Route::get('/books', [BookController::class, 'index']);
