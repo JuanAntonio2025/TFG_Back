@@ -31,6 +31,7 @@ Route::prefix('v1')->group(function () {
 
     // Catálogo público
     Route::get('/books', [BookController::class, 'index']);
+    Route::get('/books/by-ids', [BookController::class, 'getByIds']);
     Route::get('/books/{bookId}', [BookController::class, 'show']);
     Route::get('/categories', [CategoryController::class, 'index']);
 

@@ -79,4 +79,29 @@ class BookController extends Controller
             ],
         ]);
     }
+
+    public function getByIds(Request $request): JsonResponse
+    {
+        $ids = $request->query('ids', '');
+
+        $bookIds = collect(explode(',', $ids))
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($bookIds->isEmpty()) {
+            return response()->json([
+                'data' => [],
+            ]);
+        }
+
+        $books = Book::whereIn('book_id', $bookIds)
+            ->where('available', 'available')
+            ->get();
+
+        return response()->json([
+            'data' => $books,
+        ]);
+    }
 }
