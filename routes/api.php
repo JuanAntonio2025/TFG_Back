@@ -126,6 +126,13 @@ Route::prefix('v1/support')
         Route::get('/incidences', [SupportIncidenceController::class, 'index']);
         Route::get('/incidences/{incidenceId}', [SupportIncidenceController::class, 'show']);
         Route::patch('/incidences/{incidenceId}/status', [SupportIncidenceController::class, 'updateStatus']);
-
         Route::post('/incidences/{incidenceId}/messages', [SupportMessageController::class, 'store']);
+    });
+
+// Admin + Employee routes
+Route::prefix('v1/admin')
+    ->middleware(['auth:sanctum', 'role:admin,employee'])
+    ->group(function () {
+        Route::apiResource('/books', AdminBookController::class);
+        Route::apiResource('/categories', AdminCategoryController::class);
     });
