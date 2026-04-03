@@ -133,6 +133,18 @@ Route::prefix('v1/support')
 Route::prefix('v1/admin')
     ->middleware(['auth:sanctum', 'role:admin,employee'])
     ->group(function () {
-        Route::apiResource('/books', AdminBookController::class);
-        Route::apiResource('/categories', AdminCategoryController::class);
+
+        // Books
+        Route::get('/books', [AdminBookController::class, 'index']);
+        Route::post('/books', [AdminBookController::class, 'store']);
+        Route::get('/books/{bookId}', [AdminBookController::class, 'show']);
+        Route::put('/books/{bookId}', [AdminBookController::class, 'update']);
+        Route::delete('/books/{bookId}', [AdminBookController::class, 'destroy']);
+
+        // Categories
+        Route::get('/categories', [AdminCategoryController::class, 'index']);
+        Route::post('/categories', [AdminCategoryController::class, 'store']);
+        Route::get('/categories/{categoryId}', [AdminCategoryController::class, 'show']);
+        Route::put('/categories/{categoryId}', [AdminCategoryController::class, 'update']);
+        Route::delete('/categories/{categoryId}', [AdminCategoryController::class, 'destroy']);
     });

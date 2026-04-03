@@ -45,6 +45,7 @@ class AdminBookController extends Controller
             'front_page' => ['nullable', 'string', 'max:255'],
             'format' => ['required', 'in:PDF,EPUB'],
             'available' => ['required', 'in:available,unavailable'],
+            'featured' => ['nullable', 'boolean'],
             'category_ids' => ['nullable', 'array'],
             'category_ids.*' => ['integer', 'exists:categories,category_id'],
         ]);
@@ -84,6 +85,7 @@ class AdminBookController extends Controller
             'front_page' => ['nullable', 'string', 'max:255'],
             'format' => ['sometimes', 'in:PDF,EPUB'],
             'available' => ['sometimes', 'in:available,unavailable'],
+            'featured' => ['nullable', 'boolean'],
             'category_ids' => ['nullable', 'array'],
             'category_ids.*' => ['integer', 'exists:categories,category_id'],
         ]);

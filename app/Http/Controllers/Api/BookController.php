@@ -34,6 +34,11 @@ class BookController extends Controller
             });
         }
 
+        //Destacados
+        if ($request->has('featured')) {
+            $query->where('featured', filter_var($request->featured, FILTER_VALIDATE_BOOLEAN))->limit(4);
+        }
+
         // Orden opcional
         $sort = $request->query('sort', 'title_asc');
 

@@ -22,10 +22,12 @@ class Book extends Model
         'front_page',
         'format',
         'available',
+        'featured',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
+        'featured' => 'boolean',
     ];
 
     public function categories()
