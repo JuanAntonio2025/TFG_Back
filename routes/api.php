@@ -111,7 +111,10 @@ Route::prefix('v1/admin')
         // Users
         Route::get('/users', [AdminUserController::class, 'index']);
         Route::get('/users/{userId}', [AdminUserController::class, 'show']);
+        Route::post('/users', [AdminUserController::class, 'store']);
+        Route::put('/users/{userId}', [AdminUserController::class, 'update']);
         Route::patch('/users/{userId}/status', [AdminUserController::class, 'updateStatus']);
+        Route::delete('/users/{userId}', [AdminUserController::class, 'destroy']);
     });
 
 // Admin + Support routes

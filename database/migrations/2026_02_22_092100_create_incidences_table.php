@@ -17,7 +17,7 @@ return new class extends Migration
             $table->dateTime('creation_date')->default(DB::raw('CURRENT_TIMESTAMP'));
             $table->enum('status', ['active', 'inactive']);
 
-            $table->foreign('user_id')->references('user_id')->on('users');
+            $table->foreign('user_id')->references('user_id')->on('users')->onDelete('cascade');
         });
     }
 

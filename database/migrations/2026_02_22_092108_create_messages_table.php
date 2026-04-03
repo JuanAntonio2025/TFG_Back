@@ -16,8 +16,8 @@ return new class extends Migration
             $table->string('message', 255);
             $table->dateTime('sent_date')->default(DB::raw('CURRENT_TIMESTAMP'));
 
-            $table->foreign('incidence_id')->references('incidence_id')->on('incidences');
-            $table->foreign('user_id')->references('user_id')->on('users');
+            $table->foreign('incidence_id')->references('incidence_id')->on('incidences')->onDelete('cascade');
+            $table->foreign('user_id')->references('user_id')->on('users')->onDelete('cascade');
         });
     }
 

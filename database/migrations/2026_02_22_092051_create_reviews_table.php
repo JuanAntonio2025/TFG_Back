@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('comment', 255);
             $table->dateTime('date')->default(DB::raw('CURRENT_TIMESTAMP'));
 
-            $table->foreign('user_id')->references('user_id')->on('users');
+            $table->foreign('user_id')->references('user_id')->on('users')->onDelete('cascade');
             $table->foreign('book_id')->references('book_id')->on('books');
         });
 
