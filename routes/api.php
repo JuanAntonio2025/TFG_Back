@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\Admin\AdminCategoryController;
 use App\Http\Controllers\Api\Admin\AdminUserController;
 use App\Http\Controllers\Api\Support\SupportIncidenceController;
 use App\Http\Controllers\Api\Support\SupportMessageController;
+use App\Http\Controllers\Api\Support\SupportUserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ReaderController;
 
@@ -127,6 +128,7 @@ Route::prefix('v1/support')
         Route::get('/incidences/{incidenceId}', [SupportIncidenceController::class, 'show']);
         Route::patch('/incidences/{incidenceId}/status', [SupportIncidenceController::class, 'updateStatus']);
         Route::post('/incidences/{incidenceId}/messages', [SupportMessageController::class, 'store']);
+        Route::get('/users/{userId}/summary', [SupportUserController::class, 'summary']);
     });
 
 // Admin + Employee routes
