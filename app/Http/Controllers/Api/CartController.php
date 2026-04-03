@@ -18,28 +18,10 @@ class CartController extends Controller
     {
         $user = $request->user();
 
-        $cart = Cart::with(['books'])
-            ->where('user_id', $user->user_id)
-            ->where('active', Cart::STATUS_ACTIVE ?? 'active')
-            ->latest('cart_id')
-            ->first();
-
-        if (!$cart) {
-            return response()->json([
-                'data' => [
-                    'cart' => null,
-                    'items' => [],
-                    'summary' => [
-                        'items_count' => 0,
-                        'total_quantity' => 0,
-                        'total_amount' => 0.00,
-                    ],
-                ],
-            ]);
-        }
+        $cart = $this->resolveActiveCartForUser($user->user_id);
 
         return response()->json([
-            'data' => $this->formatCartResponse($cart),
+            'data' => $this->buildCartResponse($cart),
         ]);
     }
 
@@ -69,16 +51,12 @@ class CartController extends Controller
             ], 422);
         }
 
-        $cart = Cart::firstOrCreate(
-            [
-                'user_id' => $user->user_id,
-                'active' => 'active',
-            ],
-            [
-                'creation_date' => now(),
-                'expiration_date' => null,
-            ]
-        );
+        $cart = $this->resolveActiveCartForUser($user->user_id);
+
+        if (!$cart) {
+            $cart = $this->createCartForUser($user->user_id);
+            $cart->load('books');
+        }
 
         $alreadyInCart = DB::table('book_cart')
             ->where('cart_id', $cart->cart_id)
@@ -97,9 +75,11 @@ class CartController extends Controller
             'quantity' => 1,
         ]);
 
+        $cart = Cart::with('books')->find($cart->cart_id);
+
         return response()->json([
             'message' => 'Book added to cart successfully.',
-            'data' => $this->buildCartResponse($cart->fresh()),
+            'data' => $this->buildCartResponse($cart),
         ], 201);
     }
 
@@ -158,10 +138,7 @@ class CartController extends Controller
     {
         $user = $request->user();
 
-        $cart = Cart::where('user_id', $user->user_id)
-            ->where('active', Cart::STATUS_ACTIVE ?? 'active')
-            ->latest('cart_id')
-            ->first();
+        $cart = $this->resolveActiveCartForUser($user->user_id);
 
         if (!$cart) {
             return response()->json([
@@ -169,22 +146,16 @@ class CartController extends Controller
             ], 404);
         }
 
-        $deleted = DB::table('book_cart')
+        DB::table('book_cart')
             ->where('cart_id', $cart->cart_id)
             ->where('book_id', $bookId)
             ->delete();
 
-        if (!$deleted) {
-            return response()->json([
-                'message' => 'Book not found in cart.',
-            ], 404);
-        }
-
-        $cart->load('books');
+        $cart = Cart::with('books')->find($cart->cart_id);
 
         return response()->json([
-            'message' => 'Book removed from cart.',
-            'data' => $this->formatCartResponse($cart),
+            'message' => 'Book removed from cart successfully.',
+            'data' => $this->buildCartResponse($cart),
         ]);
     }
 
@@ -269,5 +240,47 @@ class CartController extends Controller
                 'total_amount' => $items->sum('line_total'),
             ],
         ];
+    }
+
+    private function resolveActiveCartForUser(int $userId): ?Cart
+    {
+        $cart = Cart::with('books')
+            ->where('user_id', $userId)
+            ->where('active', 'active')
+            ->orderByDesc('creation_date')
+            ->first();
+
+        if (!$cart) {
+            return null;
+        }
+
+        if ($this->isCartExpired($cart)) {
+            $cart->update([
+                'active' => 'closed',
+            ]);
+
+            return null;
+        }
+
+        return $cart;
+    }
+
+    private function isCartExpired(Cart $cart): bool
+    {
+        if (!$cart->expiration_date) {
+            return false;
+        }
+
+        return now()->greaterThan($cart->expiration_date);
+    }
+
+    private function createCartForUser(int $userId): Cart
+    {
+        return Cart::create([
+            'user_id' => $userId,
+            'creation_date' => now(),
+            'expiration_date' => now()->addDays(15),
+            'active' => 'active',
+        ]);
     }
 }

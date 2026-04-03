@@ -98,9 +98,9 @@ class OrderController extends Controller
             ->where('active', 'active')
             ->first();
 
-        if (!$cart || $cart->books->isEmpty()) {
+        if (!$cart || ($cart->expiration_date && now()->greaterThan($cart->expiration_date)) || $cart->books->isEmpty()) {
             return response()->json([
-                'message' => 'Your cart is empty.',
+                'message' => 'Your cart is empty or has expired.',
             ], 422);
         }
 
