@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Book;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class AdminBookController extends Controller
 {
@@ -42,15 +43,29 @@ class AdminBookController extends Controller
             'author' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
-            'front_page' => ['nullable', 'string', 'max:255'],
+            'front_page' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'format' => ['required', 'in:PDF,EPUB'],
             'available' => ['required', 'in:available,unavailable'],
-            'featured' => ['nullable', 'boolean'],
+            'featured' => ['nullable'],
             'category_ids' => ['nullable', 'array'],
             'category_ids.*' => ['integer', 'exists:categories,category_id'],
         ]);
 
-        $categoryIds = $data['category_ids'] ?? [];
+        $categoryIds = $request->input('category_ids', []);
+
+        if (!is_array($categoryIds)) {
+            $categoryIds = [$categoryIds];
+        }
+
+        $data['featured'] = filter_var($request->input('featured', false), FILTER_VALIDATE_BOOLEAN);
+
+        if ($request->hasFile('front_page')) {
+            $path = $request->file('front_page')->store('covers', 'public');
+            $data['front_page'] = $path;
+        } else {
+            $data['front_page'] = null;
+        }
+
         unset($data['category_ids']);
 
         $book = Book::create($data);
@@ -82,15 +97,33 @@ class AdminBookController extends Controller
             'author' => ['sometimes', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'price' => ['sometimes', 'numeric', 'min:0'],
-            'front_page' => ['nullable', 'string', 'max:255'],
+            'front_page' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'format' => ['sometimes', 'in:PDF,EPUB'],
             'available' => ['sometimes', 'in:available,unavailable'],
-            'featured' => ['nullable', 'boolean'],
+            'featured' => ['nullable'],
             'category_ids' => ['nullable', 'array'],
             'category_ids.*' => ['integer', 'exists:categories,category_id'],
         ]);
 
-        $categoryIds = $data['category_ids'] ?? null;
+        $categoryIds = $request->input('category_ids', null);
+
+        if ($categoryIds !== null && !is_array($categoryIds)) {
+            $categoryIds = [$categoryIds];
+        }
+
+        if ($request->has('featured')) {
+            $data['featured'] = filter_var($request->input('featured'), FILTER_VALIDATE_BOOLEAN);
+        }
+
+        if ($request->hasFile('front_page')) {
+            if ($book->front_page) {
+                Storage::disk('public')->delete($book->front_page);
+            }
+
+            $path = $request->file('front_page')->store('covers', 'public');
+            $data['front_page'] = $path;
+        }
+
         unset($data['category_ids']);
 
         $book->fill($data);
@@ -116,6 +149,10 @@ class AdminBookController extends Controller
             return response()->json([
                 'message' => 'Book not found.',
             ], 404);
+        }
+
+        if ($book->front_page) {
+            Storage::disk('public')->delete($book->front_page);
         }
 
         $book->delete();
