@@ -75,6 +75,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
     //Reader
     Route::get('/reader/{bookId}', [ReaderController::class, 'show']);
+    Route::get('/reader/{bookId}/file', [ReaderController::class, 'file']);
 });
 
 // Admin-only routes

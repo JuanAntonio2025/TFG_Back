@@ -20,6 +20,7 @@ class Book extends Model
         'description',
         'price',
         'front_page',
+        'file_path',
         'format',
         'available',
         'featured',

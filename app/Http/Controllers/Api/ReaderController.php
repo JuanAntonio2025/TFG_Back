@@ -7,6 +7,8 @@ use App\Models\Book;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReaderController extends Controller
 {
@@ -71,5 +73,50 @@ class ReaderController extends Controller
                     "and restrict access only to users who purchased the book.",
             ],
         ];
+    }
+
+    public function file(Request $request, int $bookId)
+    {
+        $user = $request->user();
+
+        $book = Book::find($bookId);
+
+        if (!$book) {
+            return response()->json([
+                'message' => 'Book not found.',
+            ], 404);
+        }
+
+        $hasPurchased = DB::table('orders')
+            ->join('book_order', 'orders.order_id', '=', 'book_order.order_id')
+            ->where('orders.user_id', $user->user_id)
+            ->where('orders.status', 'paid')
+            ->where('book_order.book_id', $bookId)
+            ->exists();
+
+        if (!$hasPurchased) {
+            return response()->json([
+                'message' => 'You are not allowed to access this file.',
+            ], 403);
+        }
+
+        if (!$book->file_path || !Storage::disk('local')->exists($book->file_path)) {
+            return response()->json([
+                'message' => 'Book file not found.',
+            ], 404);
+        }
+
+        $mimeType = match (strtoupper($book->format)) {
+            'PDF' => 'application/pdf',
+            'EPUB' => 'application/epub+zip',
+            default => 'application/octet-stream',
+        };
+
+        return response()->stream(function () use ($book) {
+            echo Storage::disk('local')->get($book->file_path);
+        }, 200, [
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => 'inline; filename="' . basename($book->file_path) . '"',
+        ]);
     }
 }

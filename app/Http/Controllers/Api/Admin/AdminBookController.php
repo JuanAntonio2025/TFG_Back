@@ -44,12 +44,27 @@ class AdminBookController extends Controller
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
             'front_page' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'book_file' => ['nullable', 'file', 'mimes:pdf,epub', 'max:51200'],
             'format' => ['required', 'in:PDF,EPUB'],
             'available' => ['required', 'in:available,unavailable'],
             'featured' => ['nullable'],
             'category_ids' => ['nullable', 'array'],
             'category_ids.*' => ['integer', 'exists:categories,category_id'],
         ]);
+
+        if ($request->hasFile('book_file')) {
+            $extension = strtolower($request->file('book_file')->getClientOriginalExtension());
+            $selectedFormat = strtoupper($request->input('format'));
+
+            if (
+                ($selectedFormat === 'PDF' && $extension !== 'pdf') ||
+                ($selectedFormat === 'EPUB' && $extension !== 'epub')
+            ) {
+                return response()->json([
+                    'message' => 'The uploaded file does not match the selected format.',
+                ], 422);
+            }
+        }
 
         $categoryIds = $request->input('category_ids', []);
 
@@ -60,13 +75,21 @@ class AdminBookController extends Controller
         $data['featured'] = filter_var($request->input('featured', false), FILTER_VALIDATE_BOOLEAN);
 
         if ($request->hasFile('front_page')) {
-            $path = $request->file('front_page')->store('covers', 'public');
-            $data['front_page'] = $path;
+            $coverPath = $request->file('front_page')->store('covers', 'public');
+            $data['front_page'] = $coverPath;
         } else {
             $data['front_page'] = null;
         }
 
+        if ($request->hasFile('book_file')) {
+            $bookPath = $request->file('book_file')->store('books', 'local');
+            $data['file_path'] = $bookPath;
+        } else {
+            $data['file_path'] = null;
+        }
+
         unset($data['category_ids']);
+        unset($data['book_file']);
 
         $book = Book::create($data);
 
@@ -98,12 +121,27 @@ class AdminBookController extends Controller
             'description' => ['nullable', 'string'],
             'price' => ['sometimes', 'numeric', 'min:0'],
             'front_page' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'book_file' => ['nullable', 'file', 'mimes:pdf,epub', 'max:51200'],
             'format' => ['sometimes', 'in:PDF,EPUB'],
             'available' => ['sometimes', 'in:available,unavailable'],
             'featured' => ['nullable'],
             'category_ids' => ['nullable', 'array'],
             'category_ids.*' => ['integer', 'exists:categories,category_id'],
         ]);
+
+        if ($request->hasFile('book_file')) {
+            $extension = strtolower($request->file('book_file')->getClientOriginalExtension());
+            $selectedFormat = strtoupper($request->input('format'));
+
+            if (
+                ($selectedFormat === 'PDF' && $extension !== 'pdf') ||
+                ($selectedFormat === 'EPUB' && $extension !== 'epub')
+            ) {
+                return response()->json([
+                    'message' => 'The uploaded file does not match the selected format.',
+                ], 422);
+            }
+        }
 
         $categoryIds = $request->input('category_ids', null);
 
@@ -120,11 +158,21 @@ class AdminBookController extends Controller
                 Storage::disk('public')->delete($book->front_page);
             }
 
-            $path = $request->file('front_page')->store('covers', 'public');
-            $data['front_page'] = $path;
+            $coverPath = $request->file('front_page')->store('covers', 'public');
+            $data['front_page'] = $coverPath;
+        }
+
+        if ($request->hasFile('book_file')) {
+            if ($book->file_path) {
+                Storage::disk('local')->delete($book->file_path);
+            }
+
+            $bookPath = $request->file('book_file')->store('books', 'local');
+            $data['file_path'] = $bookPath;
         }
 
         unset($data['category_ids']);
+        unset($data['book_file']);
 
         $book->fill($data);
         $book->save();
@@ -153,6 +201,10 @@ class AdminBookController extends Controller
 
         if ($book->front_page) {
             Storage::disk('public')->delete($book->front_page);
+        }
+
+        if ($book->file_path) {
+            Storage::disk('local')->delete($book->file_path);
         }
 
         $book->delete();
