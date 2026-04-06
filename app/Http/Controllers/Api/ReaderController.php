@@ -8,7 +8,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReaderController extends Controller
 {
@@ -58,19 +57,12 @@ class ReaderController extends Controller
             [
                 'page' => 1,
                 'content' => "Chapter 1\n\n" . $baseText . "\n\n" .
-                    "This is a simulated reader page for demonstration purposes in Júpiter.",
+                    "This is sample reader content for books without a rendered file.",
             ],
             [
                 'page' => 2,
                 'content' => "Chapter 2\n\n" .
-                    "The story continues with more reading content adapted for the digital reader demo.\n\n" .
                     "Book: {$book->title}\nAuthor: {$book->author}",
-            ],
-            [
-                'page' => 3,
-                'content' => "Chapter 3\n\n" .
-                    "This final sample page shows how the reading module can paginate book content " .
-                    "and restrict access only to users who purchased the book.",
             ],
         ];
     }
@@ -100,7 +92,7 @@ class ReaderController extends Controller
             ], 403);
         }
 
-        if (!$book->file_path || !Storage::disk('local')->exists($book->file_path)) {
+        if (!$book->file_path || !Storage::disk('jupiter_books')->exists($book->file_path)) {
             return response()->json([
                 'message' => 'Book file not found.',
             ], 404);
@@ -112,8 +104,17 @@ class ReaderController extends Controller
             default => 'application/octet-stream',
         };
 
-        return response()->stream(function () use ($book) {
-            echo Storage::disk('local')->get($book->file_path);
+        $stream = Storage::disk('jupiter_books')->readStream($book->file_path);
+
+        if ($stream === false) {
+            return response()->json([
+                'message' => 'Could not open the book file.',
+            ], 500);
+        }
+
+        return response()->stream(function () use ($stream) {
+            fpassthru($stream);
+            fclose($stream);
         }, 200, [
             'Content-Type' => $mimeType,
             'Content-Disposition' => 'inline; filename="' . basename($book->file_path) . '"',

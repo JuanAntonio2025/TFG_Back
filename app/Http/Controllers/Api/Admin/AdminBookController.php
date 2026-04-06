@@ -14,7 +14,8 @@ class AdminBookController extends Controller
     {
         $books = Book::with('categories')
             ->orderByDesc('book_id')
-            ->get();
+            ->get()
+            ->map(fn (Book $book) => $this->transformBook($book));
 
         return response()->json([
             'data' => $books,
@@ -32,7 +33,7 @@ class AdminBookController extends Controller
         }
 
         return response()->json([
-            'data' => $book,
+            'data' => $this->transformBook($book),
         ]);
     }
 
@@ -75,14 +76,14 @@ class AdminBookController extends Controller
         $data['featured'] = filter_var($request->input('featured', false), FILTER_VALIDATE_BOOLEAN);
 
         if ($request->hasFile('front_page')) {
-            $coverPath = $request->file('front_page')->store('covers', 'public');
+            $coverPath = $request->file('front_page')->store('', 'covers');
             $data['front_page'] = $coverPath;
         } else {
             $data['front_page'] = null;
         }
 
         if ($request->hasFile('book_file')) {
-            $bookPath = $request->file('book_file')->store('books', 'local');
+            $bookPath = $request->file('book_file')->store('', 'books');
             $data['file_path'] = $bookPath;
         } else {
             $data['file_path'] = null;
@@ -101,7 +102,7 @@ class AdminBookController extends Controller
 
         return response()->json([
             'message' => 'Book created successfully.',
-            'data' => $book,
+            'data' => $this->transformBook($book),
         ], 201);
     }
 
@@ -130,8 +131,8 @@ class AdminBookController extends Controller
         ]);
 
         if ($request->hasFile('book_file')) {
+            $selectedFormat = strtoupper($request->input('format', $book->format));
             $extension = strtolower($request->file('book_file')->getClientOriginalExtension());
-            $selectedFormat = strtoupper($request->input('format'));
 
             if (
                 ($selectedFormat === 'PDF' && $extension !== 'pdf') ||
@@ -155,19 +156,19 @@ class AdminBookController extends Controller
 
         if ($request->hasFile('front_page')) {
             if ($book->front_page) {
-                Storage::disk('public')->delete($book->front_page);
+                Storage::disk('jupiter_covers')->delete($book->front_page);
             }
 
-            $coverPath = $request->file('front_page')->store('covers', 'public');
+            $coverPath = $request->file('front_page')->store('', 'covers');
             $data['front_page'] = $coverPath;
         }
 
         if ($request->hasFile('book_file')) {
             if ($book->file_path) {
-                Storage::disk('local')->delete($book->file_path);
+                Storage::disk('jupiter_books')->delete($book->file_path);
             }
 
-            $bookPath = $request->file('book_file')->store('books', 'local');
+            $bookPath = $request->file('book_file')->store('', 'books');
             $data['file_path'] = $bookPath;
         }
 
@@ -185,7 +186,7 @@ class AdminBookController extends Controller
 
         return response()->json([
             'message' => 'Book updated successfully.',
-            'data' => $book,
+            'data' => $this->transformBook($book),
         ]);
     }
 
@@ -200,11 +201,11 @@ class AdminBookController extends Controller
         }
 
         if ($book->front_page) {
-            Storage::disk('public')->delete($book->front_page);
+            Storage::disk('jupiter_covers')->delete($book->front_page);
         }
 
         if ($book->file_path) {
-            Storage::disk('local')->delete($book->file_path);
+            Storage::disk('jupiter_books')->delete($book->file_path);
         }
 
         $book->delete();
@@ -212,5 +213,16 @@ class AdminBookController extends Controller
         return response()->json([
             'message' => 'Book deleted successfully.',
         ]);
+    }
+
+    private function transformBook(Book $book): array
+    {
+        $data = $book->toArray();
+
+        $data['front_page_url'] = $book->front_page
+            ? Storage::disk('jupiter_covers')->url($book->front_page)
+            : null;
+
+        return $data;
     }
 }
