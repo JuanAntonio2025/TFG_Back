@@ -56,13 +56,11 @@ class ReaderController extends Controller
         return [
             [
                 'page' => 1,
-                'content' => "Chapter 1\n\n" . $baseText . "\n\n" .
-                    "This is sample reader content for books without a rendered file.",
+                'content' => "Chapter 1\n\n" . $baseText,
             ],
             [
                 'page' => 2,
-                'content' => "Chapter 2\n\n" .
-                    "Book: {$book->title}\nAuthor: {$book->author}",
+                'content' => "Book: {$book->title}\nAuthor: {$book->author}",
             ],
         ];
     }

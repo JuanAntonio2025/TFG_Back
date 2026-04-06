@@ -76,14 +76,14 @@ class AdminBookController extends Controller
         $data['featured'] = filter_var($request->input('featured', false), FILTER_VALIDATE_BOOLEAN);
 
         if ($request->hasFile('front_page')) {
-            $coverPath = $request->file('front_page')->store('', 'covers');
+            $coverPath = $request->file('front_page')->store('covers', 'jupiter_covers');
             $data['front_page'] = $coverPath;
         } else {
             $data['front_page'] = null;
         }
 
         if ($request->hasFile('book_file')) {
-            $bookPath = $request->file('book_file')->store('', 'books');
+            $bookPath = $request->file('book_file')->store('books', 'jupiter_books');
             $data['file_path'] = $bookPath;
         } else {
             $data['file_path'] = null;
@@ -159,7 +159,7 @@ class AdminBookController extends Controller
                 Storage::disk('jupiter_covers')->delete($book->front_page);
             }
 
-            $coverPath = $request->file('front_page')->store('', 'covers');
+            $coverPath = $request->file('front_page')->store('covers', 'jupiter_covers');
             $data['front_page'] = $coverPath;
         }
 
@@ -168,7 +168,7 @@ class AdminBookController extends Controller
                 Storage::disk('jupiter_books')->delete($book->file_path);
             }
 
-            $bookPath = $request->file('book_file')->store('', 'books');
+            $bookPath = $request->file('book_file')->store('books', 'jupiter_books');
             $data['file_path'] = $bookPath;
         }
 
