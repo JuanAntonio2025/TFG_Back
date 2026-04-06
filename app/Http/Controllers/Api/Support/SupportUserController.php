@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class SupportUserController extends Controller
 {
@@ -44,7 +45,15 @@ class SupportUserController extends Controller
                 'books.front_page',
                 'book_order.unit_price',
                 'orders.order_date as purchased_at',
-            ]);
+            ])
+            ->map(function ($book) {
+                $book->front_page_url = $book->front_page
+                    ? Storage::disk('jupiter_covers')->url($book->front_page)
+                    : null;
+
+                return $book;
+            })
+            ->values();
 
         return response()->json([
             'data' => [
