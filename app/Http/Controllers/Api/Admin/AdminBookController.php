@@ -40,10 +40,19 @@ class AdminBookController extends Controller
     public function store(Request $request): JsonResponse
     {
 
-        dd(
-            config('filesystems.disks.jupiter_covers'),
-            config('filesystems.disks.jupiter_books')
-        );
+        try {
+            Storage::disk('jupiter_covers')->put('test.txt', 'hola');
+            Storage::disk('jupiter_books')->put('test.txt', 'hola');
+
+            return response()->json([
+                'message' => 'WRITE OK',
+            ], 200);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'WRITE FAIL',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
         /*$data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'author' => ['required', 'string', 'max:255'],

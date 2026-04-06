@@ -69,7 +69,6 @@ return [
             'url' => env('AWS_COVERS_URL'),
             'endpoint' => env('AWS_COVERS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_COVERS_USE_PATH_STYLE_ENDPOINT', false),
-            'visibility' => 'public',
             'throw' => false,
         ],
 
@@ -81,7 +80,6 @@ return [
             'bucket' => env('AWS_BOOKS_BUCKET'),
             'endpoint' => env('AWS_BOOKS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_BOOKS_USE_PATH_STYLE_ENDPOINT', false),
-            'visibility' => 'private',
             'throw' => false,
         ],
 
