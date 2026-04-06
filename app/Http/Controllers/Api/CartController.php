@@ -3,17 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Book;
 use App\Models\Cart;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class CartController extends Controller
 {
-    /**
-     * Obtiene el carrito activo del usuario autenticado (si existe).
-     */
     public function show(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -25,9 +22,6 @@ class CartController extends Controller
         ]);
     }
 
-    /**
-     * Añade un libro al carrito activo (o crea carrito si no existe).
-     */
     public function storeItem(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -83,9 +77,6 @@ class CartController extends Controller
         ], 201);
     }
 
-    /**
-     * Actualiza la cantidad de un libro en el carrito activo.
-     */
     public function updateItem(Request $request, int $bookId): JsonResponse
     {
         $user = $request->user();
@@ -131,9 +122,6 @@ class CartController extends Controller
         ]);
     }
 
-    /**
-     * Elimina un libro del carrito activo.
-     */
     public function deleteItem(Request $request, int $bookId): JsonResponse
     {
         $user = $request->user();
@@ -159,9 +147,6 @@ class CartController extends Controller
         ]);
     }
 
-    /**
-     * Formatea la salida del carrito para frontend.
-     */
     private function formatCartResponse(Cart $cart): array
     {
         $items = $cart->books->map(function ($book) {
@@ -174,6 +159,9 @@ class CartController extends Controller
                 'title' => $book->title,
                 'author' => $book->author,
                 'front_page' => $book->front_page,
+                'front_page_url' => $book->front_page
+                    ? Storage::disk('jupiter_covers')->url($book->front_page)
+                    : null,
                 'format' => $book->format,
                 'price' => round($price, 2),
                 'quantity' => $quantity,
@@ -220,6 +208,9 @@ class CartController extends Controller
                 'title' => $book->title,
                 'author' => $book->author,
                 'front_page' => $book->front_page,
+                'front_page_url' => $book->front_page
+                    ? Storage::disk('jupiter_covers')->url($book->front_page)
+                    : null,
                 'format' => $book->format,
                 'price' => (float) $book->price,
                 'line_total' => (float) $book->price,

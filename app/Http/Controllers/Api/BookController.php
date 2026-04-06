@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Book;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class BookController extends Controller
 {
@@ -15,7 +16,6 @@ class BookController extends Controller
             ->with(['categories'])
             ->where('available', 'available');
 
-        // Búsqueda por título/autor
         if ($request->filled('search')) {
             $search = trim((string) $request->query('search'));
 
@@ -25,7 +25,6 @@ class BookController extends Controller
             });
         }
 
-        // Filtro por categoría
         if ($request->filled('category_id')) {
             $categoryId = (int) $request->query('category_id');
 
@@ -34,12 +33,13 @@ class BookController extends Controller
             });
         }
 
-        //Destacados
         if ($request->has('featured')) {
-            $query->where('featured', filter_var($request->featured, FILTER_VALIDATE_BOOLEAN))->limit(4);
+            $query->where(
+                'featured',
+                filter_var($request->featured, FILTER_VALIDATE_BOOLEAN)
+            )->limit(4);
         }
 
-        // Orden opcional
         $sort = $request->query('sort', 'title_asc');
 
         match ($sort) {
@@ -56,6 +56,10 @@ class BookController extends Controller
 
         $books = $query->paginate($perPage);
 
+        $books->setCollection(
+            $books->getCollection()->map(fn (Book $book) => $this->transformBook($book))
+        );
+
         return response()->json($books);
     }
 
@@ -71,7 +75,7 @@ class BookController extends Controller
 
         return response()->json([
             'data' => [
-                'book' => $book,
+                'book' => $this->transformBook($book),
                 'reviews_summary' => [
                     'avg_points' => $avgPoints ? round((float) $avgPoints, 2) : null,
                     'total_reviews' => $totalReviews,
@@ -96,12 +100,25 @@ class BookController extends Controller
             ]);
         }
 
-        $books = Book::whereIn('book_id', $bookIds)
+        $books = Book::with('categories')
+            ->whereIn('book_id', $bookIds)
             ->where('available', 'available')
-            ->get();
+            ->get()
+            ->map(fn (Book $book) => $this->transformBook($book));
 
         return response()->json([
             'data' => $books,
         ]);
+    }
+
+    private function transformBook(Book $book): array
+    {
+        $data = $book->toArray();
+
+        $data['front_page_url'] = $book->front_page
+            ? Storage::disk('jupiter_covers')->url($book->front_page)
+            : null;
+
+        return $data;
     }
 }

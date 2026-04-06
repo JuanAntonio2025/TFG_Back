@@ -8,13 +8,11 @@ use App\Models\Order;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class OrderController extends Controller
 {
-    /**
-     * Lista pedidos del usuario autenticado.
-     */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -33,9 +31,6 @@ class OrderController extends Controller
         ]);
     }
 
-    /**
-     * Muestra detalle de un pedido concreto del usuario.
-     */
     public function show(Request $request, int $orderId): JsonResponse
     {
         $user = $request->user();
@@ -56,9 +51,6 @@ class OrderController extends Controller
         ]);
     }
 
-    /**
-     * Crea pedido desde el carrito activo (checkout simulado).
-     */
     public function store(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -167,9 +159,6 @@ class OrderController extends Controller
         }
     }
 
-    /**
-     * Formatea un pedido con líneas para frontend.
-     */
     private function formatOrder(Order $order): array
     {
         $items = $order->books->map(function ($book) {
@@ -182,6 +171,9 @@ class OrderController extends Controller
                 'title' => $book->title,
                 'author' => $book->author,
                 'front_page' => $book->front_page,
+                'front_page_url' => $book->front_page
+                    ? Storage::disk('jupiter_covers')->url($book->front_page)
+                    : null,
                 'format' => $book->format,
                 'unit_price' => round($unitPrice, 2),
             ];

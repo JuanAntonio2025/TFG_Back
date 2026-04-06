@@ -6,12 +6,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class LibraryController extends Controller
 {
-    /**
-     * Biblioteca del usuario: libros comprados en pedidos pagados.
-     */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -35,8 +33,6 @@ class LibraryController extends Controller
             ->orderByDesc('orders.order_date')
             ->get();
 
-        // Si un usuario compró el mismo libro en pedidos distintos (raro en ebooks),
-        // puedes devolver todos los registros o deduplicar. Aquí deduplicamos por book_id.
         $library = collect($rows)
             ->unique('book_id')
             ->values()
@@ -46,6 +42,9 @@ class LibraryController extends Controller
                     'title' => $row->title,
                     'author' => $row->author,
                     'front_page' => $row->front_page,
+                    'front_page_url' => $row->front_page
+                        ? Storage::disk('jupiter_covers')->url($row->front_page)
+                        : null,
                     'format' => $row->format,
                     'available' => $row->available,
                     'purchase_info' => [
