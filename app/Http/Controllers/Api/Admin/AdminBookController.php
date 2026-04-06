@@ -39,7 +39,12 @@ class AdminBookController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $data = $request->validate([
+
+        dd(
+            config('filesystems.disks.jupiter_covers'),
+            config('filesystems.disks.jupiter_books')
+        );
+        /*$data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'author' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
@@ -103,7 +108,7 @@ class AdminBookController extends Controller
         return response()->json([
             'message' => 'Book created successfully.',
             'data' => $this->transformBook($book),
-        ], 201);
+        ], 201);*/
     }
 
     public function update(Request $request, int $bookId): JsonResponse
