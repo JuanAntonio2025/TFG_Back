@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\Support\SupportMessageController;
 use App\Http\Controllers\Api\Support\SupportUserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ReaderController;
+use App\Http\Controllers\Api\StripeCheckoutController;
 
 Route::prefix('v1')->group(function () {
     // Auth pública
@@ -37,6 +38,9 @@ Route::prefix('v1')->group(function () {
 
     // Reseñas públicas por libro
     Route::get('/books/{bookId}/reviews', [ReviewController::class, 'indexByBook']);
+
+    //Stripe webhook
+    Route::post('/stripe/webhook', [StripeCheckoutController::class, 'webhook']);
 });
 
 Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
@@ -56,6 +60,9 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders', [OrderController::class, 'index']);
     Route::get('/orders/{orderId}', [OrderController::class, 'show']);
+
+    //Stripe Checkout
+    Route::post('/checkout/stripe/session', [StripeCheckoutController::class, 'createSession']);
 
     // Library
     Route::get('/library', [LibraryController::class, 'index']);
