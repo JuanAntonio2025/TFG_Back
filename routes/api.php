@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\Support\SupportUserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ReaderController;
 use App\Http\Controllers\Api\StripeCheckoutController;
+use App\Http\Controllers\Api\Admin\AdminOrderController;
 
 Route::prefix('v1')->group(function () {
     // Auth pública
@@ -124,6 +125,10 @@ Route::prefix('v1/admin')
         Route::put('/users/{userId}', [AdminUserController::class, 'update']);
         Route::patch('/users/{userId}/status', [AdminUserController::class, 'updateStatus']);
         Route::delete('/users/{userId}', [AdminUserController::class, 'destroy']);
+
+        // Orders
+        Route::get('/orders', [AdminOrderController::class, 'index']);
+        Route::get('/orders/{orderId}', [AdminOrderController::class, 'show']);
     });
 
 // Admin + Support routes
